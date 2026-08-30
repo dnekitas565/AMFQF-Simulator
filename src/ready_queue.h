@@ -43,6 +43,15 @@ int rq_is_empty(const ready_queue_t *q);
 void rq_enqueue(ready_queue_t *q, process_t *p);
 
 /*
+ * Insert p at the head of q in O(1) time.  AMFQF uses this when a
+ * lower-priority running process is preempted: the frozen v1.0 rule says
+ * it must resume ahead of processes that were already waiting in its
+ * current (queue, group) FIFO.  As with rq_enqueue(), p must not already
+ * be linked into any ready queue.
+ */
+void rq_enqueue_front(ready_queue_t *q, process_t *p);
+
+/*
  * Remove and return the process at the head of the queue, or NULL if the
  * queue is empty. The returned process's ->next is set to NULL before
  * returning — it is fully detached from the queue's internal linkage, so

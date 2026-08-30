@@ -24,6 +24,19 @@ void rq_enqueue(ready_queue_t *q, process_t *p) {
     q->count++;
 }
 
+void rq_enqueue_front(ready_queue_t *q, process_t *p) {
+    if (q == NULL || p == NULL) {
+        return;
+    }
+
+    p->next = q->head;
+    q->head = p;
+    if (q->tail == NULL) {
+        q->tail = p;
+    }
+    q->count++;
+}
+
 process_t *rq_dequeue(ready_queue_t *q) {
     if (q->head == NULL) {
         return NULL; /* empty queue is a normal condition (CPU may be idle) */

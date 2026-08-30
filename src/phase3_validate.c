@@ -18,6 +18,7 @@
 #include "process.h"
 #include "group.h"
 #include "trace_loader.h"
+#include "ready_queue.h"
 #include "scheduler_rr.h"
 
 static int g_pass_count = 0;
@@ -335,6 +336,40 @@ static void test9_burst_equals_quantum(void) {
 }
 
 /* ================================================================
+ * TEST 10 — front insertion used by AMFQF preemption.
+ *
+ * The queue begins [P1, P2].  P3 represents a preempted runner and must
+ * return to the front, giving [P3, P1, P2].  The test also exercises the
+ * empty-queue case, where one front insertion must establish both head
+ * and tail.  Process nodes are stack objects because ready_queue_t never
+ * owns or frees them.
+ * ================================================================ */
+static void test10_enqueue_front(void) {
+    printf("\n=== TEST 10: ready queue front insertion ===\n");
+    process_t p1 = { .pid = 1 }, p2 = { .pid = 2 }, p3 = { .pid = 3 };
+    ready_queue_t q;
+    rq_init(&q);
+
+    rq_enqueue(&q, &p1);
+    rq_enqueue(&q, &p2);
+    rq_enqueue_front(&q, &p3);
+
+    CHECK(q.count == 3, "front insertion increments queue count");
+    CHECK(q.head == &p3 && q.tail == &p2, "front insertion preserves head and tail");
+    CHECK(rq_dequeue(&q) == &p3, "preempted process is dequeued before prior waiters");
+    CHECK(rq_dequeue(&q) == &p1 && rq_dequeue(&q) == &p2,
+          "prior FIFO order is preserved after front insertion");
+    CHECK(rq_is_empty(&q) && q.head == NULL && q.tail == NULL && q.count == 0,
+          "queue is empty and detached after all removals");
+
+    rq_enqueue_front(&q, &p1);
+    CHECK(q.head == &p1 && q.tail == &p1 && q.count == 1,
+          "front insertion initializes head and tail in an empty queue");
+    CHECK(rq_dequeue(&q) == &p1 && p1.next == NULL,
+          "front-inserted node is detached on dequeue");
+}
+
+/* ================================================================
  * SMOKE TEST — run RR against the three real Phase 2 traces
  * Not a hand-verified correctness test (traces are too large / random
  * for manual computation), but confirms: loads without error, every
@@ -387,6 +422,7 @@ int main(void) {
     test7_empty_trace();
     test8_malformed_csv();
     test9_burst_equals_quantum();
+    test10_enqueue_front();
     smoke_test_real_traces();
 
     printf("\n=== PHASE 3 VALIDATION SUMMARY ===\n");
