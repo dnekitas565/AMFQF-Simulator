@@ -3,9 +3,11 @@ AMFQF_SPECIFICATION.md
 phase1_validate
 phase1_validate.exe
 phase3_validate.exe
+phase5_validate.exe
 cfs_validate.exe
 phase1_validate_asan
 phase3_validate_asan
+phase5_validate_asan
 cfs_validate_asan
 trace_gen
 trace_gen_asan
